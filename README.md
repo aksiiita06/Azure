@@ -11,6 +11,6 @@ Again it wouldn't ask for any paramets as the values are coded inside it.
 
 VM-Clone-RHEL-SAP-2-BACKUP will clone the VM created earlier and create another VM within the subnet. 
 
-P.S.: The code has been written from Hewlett Packard Laptop, and by a Hewlett Packard employee (Your Truly!). So the Organization is the rightfull owner of these code. That being said, use it as long as you want.  
+P.S.: The code has been written from Hewlett Packard Laptop, and by a Hewlett Packard employee (Yours Truly!). So the Organization is the rightfull owner of these codes. That being said, use it as long as you want.  
 
 
