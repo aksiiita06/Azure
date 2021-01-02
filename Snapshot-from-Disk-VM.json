@@ -1,0 +1,119 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apiVersion": {
+      "type": "string",
+      "defaultValue": "2020-05-01"
+    },
+    "OS-Snapshot-name": {
+      "type": "string",
+      "metadata": { "Description": "Name of the OS Or Disk Snapshot Snapshot" }, 
+      "defaultValue": "OSDISK-1"
+    },
+    "USR-SAP-Snapshot-name": {
+      "type": "string",
+      "metadata": { "Description": "Name of the OS Or Disk Snapshot Snapshot" },
+      "defaultValue": "usr-sap-1"
+    },
+    "SAP-MNT-Snapshot-name": {
+      "type": "string",
+      "metadata": { "Description": "Name of the OS Or Disk Snapshot Snapshot" },
+      "defaultValue": "sap-mnt-1"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "accountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS"
+    },
+    "createOption": {
+      "type": "string",
+      "defaultValue": "Copy"
+    },
+    "sourceUri-OSDISK": {
+      "type": "string",
+      "defaultValue": "[resourceId(resourceGroup().name,'Microsoft.Compute/disks','OSDISK')]"
+    },
+    "sourceUri-SAP-MNT": {
+      "type": "string",
+      "defaultValue": "[resourceId(resourceGroup().name,'Microsoft.Compute/disks','sap-mnt')]"
+
+    },
+    "sourceUri-USR-SAP": {
+      "type": "string",
+      "defaultValue": "[resourceId(resourceGroup().name,'Microsoft.Compute/disks','usr-sap')]"
+
+    },
+    "incremental": {
+      "type": "string",
+      "defaultValue": "false"
+    },
+    "diskEncryptionSetType": {
+      "type": "string",
+      "defaultValue": "EncryptionAtRestWithPlatformKey"
+    },
+    "networkAccessPolicy": {
+      "type": "string",
+      "defaultValue": "AllowAll"
+    }
+  }, /*End of Parameters*/
+  "resources": [ /*Creation of resources*/
+    { /*OS snapshot creation*/
+      "apiVersion": "[parameters('apiVersion')]",
+      "type": "Microsoft.Compute/snapshots",
+      "name": "[parameters('OS-Snapshot-name')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('accountType')]"
+      },
+      "properties": {
+        "creationData": {
+          "createOption": "[parameters('createOption')]",
+          "sourceResourceId": "[parameters('sourceUri-OSDISK')]"
+        },
+        "networkAccessPolicy": "[parameters('networkAccessPolicy')]",
+        "incremental": "[parameters('incremental')]"
+      },
+      "tags": {}
+    }, /*End of OS snapshot Creation*/
+    { /*Creation of USR-SAP snapshot*/
+      "apiVersion": "[parameters('apiVersion')]",
+      "type": "Microsoft.Compute/snapshots",
+      "name": "[parameters('USR-SAP-Snapshot-name')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('accountType')]"
+      },
+      "properties": {
+        "creationData": {
+          "createOption": "[parameters('createOption')]",
+          "sourceResourceId": "[parameters('sourceUri-USR-SAP')]"
+        },
+        "networkAccessPolicy": "[parameters('networkAccessPolicy')]",
+        "incremental": "[parameters('incremental')]"
+      },
+      "tags": {}
+    }, /*End of Creation of USR-SAP snapshot*/
+    { /*Creation of sap-mnt snapshot*/
+      "apiVersion": "[parameters('apiVersion')]",
+      "type": "Microsoft.Compute/snapshots",
+      "name": "[parameters('SAP-MNT-Snapshot-name')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('accountType')]"
+      },
+      "properties": {
+        "creationData": {
+          "createOption": "[parameters('createOption')]",
+          "sourceResourceId": "[parameters('sourceUri-SAP-MNT')]"
+        },
+        "networkAccessPolicy": "[parameters('networkAccessPolicy')]",
+        "incremental": "[parameters('incremental')]"
+      },
+      "tags": {}
+    } /* End of Creation of sap-mnt snapshot*/
+  ] /*End of Resources*/
+}

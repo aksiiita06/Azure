@@ -1,0 +1,248 @@
+﻿{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "defaultValue": "[resourceGroup().location]",
+      "type": "string"
+    },
+    "networkInterfaceName": {
+      "defaultValue": "rhel-sap187",
+      "type": "string"
+    },
+    "networkSecurityGroupName": {
+      "defaultValue": "rhel-sap-nsg",
+      "type": "string"
+    },
+    "networkSecurityGroupRules": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "SSH",
+          "properties": {
+            "priority": 300,
+            "protocol": "TCP",
+            "access": "Allow",
+            "direction": "Inbound",
+            "sourceAddressPrefix": "*",
+            "sourcePortRange": "*",
+            "destinationAddressPrefix": "*",
+            "destinationPortRange": "22"
+          }
+        }
+      ]
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "default"
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "defaultValue": "sapnetwork"
+    },
+    "addressPrefixes": {
+      "type": "array",
+      "defaultValue": [
+        "10.1.0.0/16"
+      ]
+    },
+    "subnets": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "default",
+          "properties": {
+            "addressPrefix": "10.1.0.0/24"
+          }
+        }
+      ]
+    },
+    "publicIpAddressName": {
+      "type": "string",
+      "defaultValue": "rhel-sap-ip"
+    },
+    "publicIpAddressType": {
+      "type": "string",
+      "defaultValue": "Dynamic"
+    },
+    "publicIpAddressSku": {
+      "type": "string",
+      "defaultValue": "Basic"
+    },
+    "virtualMachineName": {
+      "type": "string",
+      "defaultValue": "rhel-sap"
+    },
+    "virtualMachineComputerName": {
+      "type": "string",
+      "defaultValue": "rhel-sap"
+    },
+    "virtualMachineRG": {
+      "type": "string",
+      "defaultValue": "resourceGroup().name"
+    },
+    "osDiskType": {
+      "type": "string",
+      "defaultValue": "Premium_LRS"
+    },
+    "virtualMachineSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS1_v2"
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "ps1adm"
+    },
+    "adminPassword": {
+      "type": "secureString",
+      "defaultValue": "password@1234"
+    }
+  },
+  "variables": {
+    "nsgId": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]",
+    "vnetId": "[resourceId(resourceGroup().name,'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('networkInterfaceName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2018-10-01",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkSecurityGroups/', parameters('networkSecurityGroupName'))]",
+        "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
+        "[concat('Microsoft.Network/publicIpAddresses/', parameters('publicIpAddressName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIpAddress": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', parameters('publicIpAddressName'))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[variables('nsgId')]"
+        }
+      }
+    },
+    {
+      "name": "[parameters('networkSecurityGroupName')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2019-02-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": "[parameters('networkSecurityGroupRules')]"
+      }
+    },
+    {
+      "name": "[parameters('virtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2019-09-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": "[parameters('addressPrefixes')]"
+        },
+        "subnets": "[parameters('subnets')]"
+      }
+    },
+    {
+      "name": "[parameters('publicIpAddressName')]",
+      "type": "Microsoft.Network/publicIpAddresses",
+      "apiVersion": "2019-02-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publicIpAllocationMethod": "[parameters('publicIpAddressType')]"
+      },
+      "sku": {
+        "name": "[parameters('publicIpAddressSku')]"
+      }
+    },
+    {
+      "name": "[parameters('virtualMachineName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2020-06-01",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('networkInterfaceName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('virtualMachineSize')]"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "name": "OSDISK",
+            "createOption": "fromImage",
+            "managedDisk": { "storageAccountType": "[parameters('osDiskType')]" }
+          },
+          "imageReference": {
+            "publisher": "RedHat",
+            "offer": "RHEL-SAP",
+            "sku": "7.7",
+            "version": "latest"
+          },
+          "dataDisks": [
+            {
+              "lun": 0,
+              "name": "sap-mnt",
+              "createOption": "Empty",
+              "caching": "ReadWrite",
+              "writeAcceleratorEnabled": false,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              },
+              "diskSizeGB": 10,
+              "toBeDetached": false
+            },
+            {
+              "lun": 1,
+              "name": "usr-sap",
+              "createOption": "Empty",
+              "caching": "ReadWrite",
+              "writeAcceleratorEnabled": false,
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              },
+              "diskSizeGB": 10,
+              "toBeDetached": false
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaceName'))]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('virtualMachineComputerName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+         
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    }
+  }
+}
